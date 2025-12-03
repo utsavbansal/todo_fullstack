@@ -21,7 +21,7 @@ pipeline {
             stage('Checkout') {
                 steps {
                     git branch: 'main',
-                        url: 'https://github.com/yourusername/todo-app.git',
+                        url: 'https://github.com/utsavbansal/todo_fullstack.git',
                         credentialsId: 'utsav-gitpat'
                 }
             }
