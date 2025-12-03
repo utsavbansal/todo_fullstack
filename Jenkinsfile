@@ -1,10 +1,10 @@
 pipeline {
-    agent any
-
-    tools {
-        maven 'Maven-3.9'
-        jdk 'JDK-17'
-        nodejs 'NodeJS-20'
+    agent {
+        docker {
+            // Use a Maven + JDK 17 image for backend build
+            image 'maven:3.9-eclipse-temurin-17'
+            args '-v /root/.m2:/root/.m2'
+        }
     }
 
     environment {
@@ -36,9 +36,16 @@ pipeline {
         }
 
         stage('Build Frontend') {
+            agent {
+                docker {
+                    // Node.js agent for frontend build
+                    image 'node:20-alpine'
+                    args '-v /root/.npm:/root/.npm'
+                }
+            }
             steps {
                 dir('frontend') {
-                    sh 'npm install'
+                    sh 'npm ci --omit=dev'
                     sh 'npm run build'
                 }
             }
@@ -46,18 +53,14 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                script {
-                    sh 'docker-compose build'
-                }
+                sh 'docker-compose build'
             }
         }
 
         stage('Deploy') {
             steps {
-                script {
-                    sh 'docker-compose down'
-                    sh 'docker-compose up -d'
-                }
+                sh 'docker-compose down'
+                sh 'docker-compose up -d'
             }
         }
 
@@ -65,7 +68,7 @@ pipeline {
             steps {
                 script {
                     sleep(time: 30, unit: 'SECONDS')
-                    sh 'curl -f http://localhost:8080/api/todos/health || exit 1'
+                    sh 'curl -f http://localhost:8081/api/todos/health || exit 1'
                 }
             }
         }
