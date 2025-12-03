@@ -22,10 +22,30 @@ public class Todo {
 
     private String description;
 
+//    @Column(nullable = false)
+//    private Boolean completed = false;
+//
+//    @Column(name = "created_at")
+//    private LocalDateTime createdAt;
+//
+//    @Column(name = "updated_at")
+//    private LocalDateTime updatedAt;
+//
+//    @PrePersist
+//    protected void onCreate() {
+//        createdAt = LocalDateTime.now();
+//        updatedAt = LocalDateTime.now();
+//    }
+//
+//    @PreUpdate
+//    protected void onUpdate() {
+//        updatedAt = LocalDateTime.now();
+//    }
+
     @Column(nullable = false)
     private Boolean completed = false;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
@@ -33,6 +53,7 @@ public class Todo {
 
     @PrePersist
     protected void onCreate() {
+        if (completed == null) completed = false;
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
@@ -41,4 +62,5 @@ public class Todo {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
 }
