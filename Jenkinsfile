@@ -82,28 +82,67 @@ stage('Deploy') {
 
 
 
-        stage('Health Check') {
-            steps {
-                script {
-                    echo "Waiting for services to start..."
+//         stage('Health Check') {
+//             steps {
+//                 script {
+//                     echo "Waiting for services to start..."
+//
+//                     retry(10) {
+//                         sleep 5
+//                         echo "Checking Backend..."
+//                         sh "curl -fs ${BACKEND_URL} > /dev/null"
+//                     }
+//
+//                     retry(10) {
+//                         sleep 5
+//                         echo "Checking Frontend..."
+//                         sh "curl -fs ${FRONTEND_URL} > /dev/null"
+//                     }
+//
+//                     echo "All services healthy!"
+//                 }
+//             }
+//         }
+//     }
 
-                    retry(10) {
-                        sleep 5
-                        echo "Checking Backend..."
-                        sh "curl -fs ${BACKEND_URL} > /dev/null"
-                    }
+stage('Health Check') {
+    steps {
+        script {
+            echo "Waiting for services to stabilize..."
+            sleep 20
 
-                    retry(10) {
-                        sleep 5
-                        echo "Checking Frontend..."
-                        sh "curl -fs ${FRONTEND_URL} > /dev/null"
-                    }
+            def backendUrl = "http://localhost:8081/api/todos"
+            def frontendUrl = "http://localhost"
 
-                    echo "All services healthy!"
-                }
+            retry(5) {
+                echo "Checking Backend..."
+                sh """
+                    if ! curl -fs ${backendUrl} > /dev/null; then
+                        echo 'Backend CHECK FAILED!'
+                        docker compose logs backend
+                        exit 1
+                    fi
+                """
+                sleep 5
             }
+
+            retry(5) {
+                echo "Checking Frontend..."
+                sh """
+                    if ! curl -fs ${frontendUrl} > /dev/null; then
+                        echo 'Frontend CHECK FAILED!'
+                        docker compose logs frontend
+                        exit 1
+                    fi
+                """
+                sleep 5
+            }
+
+            echo "💚 All services are healthy!"
         }
     }
+}
+
 
     post {
         success {
