@@ -171,10 +171,14 @@ pipeline {
 //         }
 
         stage('Build Frontend') {
+            agent {
+                docker {
+                    image 'node:20-alpine'
+                    args '-v $WORKSPACE:$WORKSPACE -w $WORKSPACE'
+                }
+            }
             steps {
                 dir('frontend') {
-                    sh 'pwd'
-                    sh 'ls -l'
                     sh 'npm ci --omit=dev'
                     sh 'npm run build'
                 }
