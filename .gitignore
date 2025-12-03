@@ -1,0 +1,51 @@
+# ——————————————
+# BACKEND (Spring Boot + Maven)
+# ——————————————
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/*.iml
+backend/.idea/
+
+# Logs
+backend/*.log
+backend/logs/
+
+# Local config
+backend/*.properties
+backend/*.yml
+!backend/src/main/resources/application.properties
+
+# ——————————————
+# FRONTEND (React)
+# ——————————————
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# ——————————————
+# DOCKER
+# ——————————————
+**/docker-compose.override.yml
+**/.docker/
+**/Dockerfile*
+
+# ——————————————
+# OS / EDITORS
+# ——————————————
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ——————————————
+# MISC
+# ——————————————
+*.log
+*.pid
