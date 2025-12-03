@@ -108,11 +108,11 @@ pipeline {
 //             }
 //         }
 
-        stage('Deploy') {
-            steps {
-                sh 'docker compose down'
-            }
-        }
+//         stage('Deploy') {
+//             steps {
+//                 sh 'docker compose down'
+//             }
+//         }
 
 
 
@@ -126,13 +126,20 @@ pipeline {
 //         }
 //     }
 
+        stage('Deploy') {
+            steps {
+                sh 'docker compose down || true'
+                sh 'docker compose up -d'
+            }
+        }
+
         stage('Health Check') {
             steps {
                 script {
                     echo "Waiting for stack to start..."
-                    sleep 10
+                    sleep 15
 
-                    def backendUrl = "http://localhost:8080/api/todos"
+                    def backendUrl = "http://localhost:8081/api/todos"
                     def frontendUrl = "http://localhost:5173"
 
                     echo "Checking Backend API..."
@@ -157,6 +164,7 @@ pipeline {
                 }
             }
         }
+
 
     post {
         success {
