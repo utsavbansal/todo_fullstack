@@ -3,7 +3,8 @@ import axios from 'axios';
 import './App.css';
 
 // const API_URL = 'http://localhost:8081/api/todos';
-const API_URL = 'http://backend:8081/api/todos';
+// const API_URL = 'http://backend:8081/api/todos';
+const API_URL = 'http://192.168.29.50:8081/api/todos';
 
 function App() {
   const [todos, setTodos] = useState([]);
