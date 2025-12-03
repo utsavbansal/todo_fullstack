@@ -153,15 +153,26 @@ pipeline {
             }
         }
 
+//         stage('Build Frontend') {
+//             agent {
+//                 docker {
+//                     image 'node:20-alpine'
+//                     args "-v $WORKSPACE:$WORKSPACE -w $WORKSPACE -v /root/.npm:/root/.npm"
+//                 }
+//             }
+//             steps {
+//                 dir("${WORKSPACE}/frontend") {
+//                     sh 'pwd'
+//                     sh 'ls -l'
+//                     sh 'npm ci --omit=dev'
+//                     sh 'npm run build'
+//                 }
+//             }
+//         }
+
         stage('Build Frontend') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    args "-v $WORKSPACE:$WORKSPACE -w $WORKSPACE -v /root/.npm:/root/.npm"
-                }
-            }
             steps {
-                dir("${WORKSPACE}/frontend") {
+                dir('frontend') {
                     sh 'pwd'
                     sh 'ls -l'
                     sh 'npm ci --omit=dev'
@@ -169,6 +180,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Build Docker Images') {
             steps {
