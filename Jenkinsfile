@@ -49,11 +49,30 @@ pipeline {
 //         }
 
 
+// stage('Deploy') {
+//     steps {
+//         sh '''
+//             echo "Cleaning stale containers..."
+//             docker rm -f todo-postgres || true
+//
+//             docker compose down --remove-orphans || true
+//             docker compose up -d
+//         '''
+//     }
+// }
+
+
 stage('Deploy') {
     steps {
         sh '''
-            echo "Cleaning stale containers..."
-            docker rm -f todo-postgres || true
+            echo "🧹 Cleaning stale containers, networks, and volumes..."
+
+            # Remove all containers whose name includes "todo"
+            docker rm -f $(docker ps -aq --filter "name=todo") || true
+
+            # Also clean orphaned networks and volumes
+            docker network prune -f || true
+            docker volume prune -f || true
 
             docker compose down --remove-orphans || true
             docker compose up -d
