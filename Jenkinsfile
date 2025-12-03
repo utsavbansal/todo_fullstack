@@ -149,17 +149,17 @@ stage('Health Check') {
 
     }
 
-    post {
-        success {
-            echo '🎉 Deployment Successful!'
-            sh 'docker compose logs'
-        }
-        failure {
-            echo '❌ Deployment Failed. Logs Below:'
-            sh 'docker compose logs || true'
-        }
-        always {
-            cleanWs()
-        }
-    }
+   post {
+       success {
+           echo "🎉 Deployment Successful!"
+       }
+       failure {
+           echo "❌ Deployment Failed. Logs Below:"
+           sh 'docker compose logs || true'
+       }
+       always {
+           cleanWs()
+       }
+   }
+
 }
