@@ -37,20 +37,38 @@ pipeline {
             }
         }
 
+//         stage('Build Frontend') {
+//             agent {
+//                 docker {
+//                     image 'node:20-alpine'
+//                     args '' // Use default workspace mount
+//                 }
+//             }
+//             steps {
+//                 dir('frontend') {
+//                     sh 'npm ci --omit=dev'
+//                     sh 'npm run build'
+//                 }
+//             }
+//         }
+
         stage('Build Frontend') {
             agent {
                 docker {
                     image 'node:20-alpine'
-                    args '' // Use default workspace mount
+                    args '' // no volume mounts
                 }
             }
             steps {
                 dir('frontend') {
-                    sh 'npm ci --omit=dev'
+                    // Use a cache folder inside workspace
+                    sh 'mkdir -p .npm-cache'
+                    sh 'npm ci --omit=dev --cache .npm-cache'
                     sh 'npm run build'
                 }
             }
         }
+
 
         stage('Build Docker Images') {
             steps {
