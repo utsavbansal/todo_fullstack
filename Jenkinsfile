@@ -13,11 +13,19 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/yourusername/todo-app.git'
+//         stage('Checkout') {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/yourusername/todo-app.git'
+//             }
+//         }
+            stage('Checkout') {
+                steps {
+                    git branch: 'main',
+                        url: 'https://github.com/yourusername/todo-app.git',
+                        credentialsId: 'utsav-gitpat'
+                }
             }
-        }
+
 
         stage('Build Backend') {
             steps {
