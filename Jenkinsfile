@@ -52,22 +52,40 @@ pipeline {
 //             }
 //         }
 
-        stage('Build Frontend') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    args '' // no volume mounts
+//         stage('Build Frontend') {
+//             agent {
+//                 docker {
+//                     image 'node:20-alpine'
+//                     args '' // no volume mounts
+//                 }
+//             }
+//             steps {
+//                 dir('frontend') {
+//                     // Use a cache folder inside workspace
+//                     sh 'mkdir -p .npm-cache'
+//                     sh 'npm ci --omit=dev --cache .npm-cache'
+//                     sh 'npm run build'
+//                 }
+//             }
+//         }
+
+            stage('Build Frontend') {
+                agent {
+                    docker {
+                        image 'node:20-alpine'
+                    }
+                }
+                steps {
+                    dir('frontend') {
+                        sh 'mkdir -p .npm-cache'
+                        // Install dev dependencies this time
+                        sh 'npm ci --cache .npm-cache'
+                        sh 'npm run build'
+                    }
                 }
             }
-            steps {
-                dir('frontend') {
-                    // Use a cache folder inside workspace
-                    sh 'mkdir -p .npm-cache'
-                    sh 'npm ci --omit=dev --cache .npm-cache'
-                    sh 'npm run build'
-                }
-            }
-        }
+
+
 
 
         stage('Build Docker Images') {
