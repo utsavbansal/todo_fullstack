@@ -41,12 +41,27 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh 'docker compose down || true'
-                sh 'docker compose up -d'
-            }
-        }
+//         stage('Deploy') {
+//             steps {
+//                 sh 'docker compose down || true'
+//                 sh 'docker compose up -d'
+//             }
+//         }
+
+
+stage('Deploy') {
+    steps {
+        sh '''
+            echo "Cleaning stale containers..."
+            docker rm -f todo-postgres || true
+
+            docker compose down --remove-orphans || true
+            docker compose up -d
+        '''
+    }
+}
+
+
 
         stage('Health Check') {
             steps {
