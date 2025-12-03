@@ -1,16 +1,13 @@
 pipeline {
-    agent none
+    agent any
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        WORKSPACE_DIR = "${env.WORKSPACE}"
     }
 
     stages {
-
         stage('Checkout') {
-            agent any
             steps {
                 git branch: 'main',
                     url: 'https://github.com/utsavbansal/todo_fullstack.git',
@@ -22,7 +19,7 @@ pipeline {
             agent {
                 docker {
                     image 'maven:3.9-eclipse-temurin-17'
-                    args "-v ${env.WORKSPACE_DIR}:${env.WORKSPACE_DIR} -w ${env.WORKSPACE_DIR}/backend"
+                    args '' // No need to mount WORKSPACE manually
                 }
             }
             steps {
@@ -33,11 +30,18 @@ pipeline {
             }
         }
 
+        stage('Debug Workspace') {
+            steps {
+                sh 'pwd'
+                sh 'ls -l'
+            }
+        }
+
         stage('Build Frontend') {
             agent {
                 docker {
                     image 'node:20-alpine'
-                    args "-v ${env.WORKSPACE_DIR}:${env.WORKSPACE_DIR} -w ${env.WORKSPACE_DIR}/frontend"
+                    args '' // Use default workspace mount
                 }
             }
             steps {
@@ -49,14 +53,12 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            agent any
             steps {
                 sh 'docker-compose build'
             }
         }
 
         stage('Deploy') {
-            agent any
             steps {
                 sh 'docker-compose down'
                 sh 'docker-compose up -d'
@@ -64,7 +66,6 @@ pipeline {
         }
 
         stage('Health Check') {
-            agent any
             steps {
                 script {
                     sleep(time: 30, unit: 'SECONDS')
