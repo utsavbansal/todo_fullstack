@@ -43,6 +43,15 @@ pipeline {
             }
         }
 
+        stage('Debug Workspace') {
+            steps {
+                sh 'pwd'
+                sh 'ls -l'
+            }
+        }
+
+
+
         stage('Build Frontend') {
             agent {
                 docker {
@@ -53,6 +62,8 @@ pipeline {
             }
             steps {
                 dir('frontend') {
+                    sh 'pwd'
+                    sh 'ls -l'
                     sh 'npm ci --omit=dev'
                     sh 'npm run build'
                 }
