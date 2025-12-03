@@ -116,15 +116,47 @@ pipeline {
 
 
 
+//         stage('Health Check') {
+//             steps {
+//                 script {
+//                     sleep(time: 30, unit: 'SECONDS')
+//                     sh 'curl -f http://localhost:8081/api/todos/health || exit 1'
+//                 }
+//             }
+//         }
+//     }
+
         stage('Health Check') {
             steps {
                 script {
-                    sleep(time: 30, unit: 'SECONDS')
-                    sh 'curl -f http://localhost:8081/api/todos/health || exit 1'
+                    echo "Waiting for stack to start..."
+                    sleep 10
+
+                    def backendUrl = "http://localhost:8080/api/todos"
+                    def frontendUrl = "http://localhost:5173"
+
+                    echo "Checking Backend API..."
+                    sh """
+                        if ! curl -fs ${backendUrl} > /dev/null; then
+                            echo 'Backend Health Check FAILED!'
+                            docker compose logs backend
+                            exit 1
+                        fi
+                    """
+
+                    echo "Checking Frontend..."
+                    sh """
+                        if ! curl -fs ${frontendUrl} > /dev/null; then
+                            echo 'Frontend Health Check FAILED!'
+                            docker compose logs frontend
+                            exit 1
+                        fi
+                    """
+
+                    echo "All services are healthy!"
                 }
             }
         }
-    }
 
     post {
         success {
