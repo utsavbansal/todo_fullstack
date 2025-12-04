@@ -24,13 +24,27 @@ services:
   ollama-setup:
     image: ollama/ollama:latest
     container_name: ollama-setup
-    entrypoint: ["/bin/sh", "-c",
-                 "ollama serve & sleep 5 && ollama pull llama3.2:latest"
-    ]
+    entrypoint: >
+      sh -c "
+        echo 'Starting Ollama service temporarily...';
+        ollama serve &
+
+        # Wait until Ollama is actually up
+        until curl -sf http://localhost:11434/api/tags; do
+          echo 'Waiting for Ollama to be ready...';
+          sleep 2;
+        done;
+
+        echo 'Ollama is ready. Pulling model...';
+        ollama pull llama3.2:latest;
+
+        echo 'Model downloaded. Exiting.'
+      "
     volumes:
       - ollama_data:/root/.ollama
     networks:
       - todo-network
+
 
   # 🚀 MAIN OLLAMA RUNTIME
   ollama:
