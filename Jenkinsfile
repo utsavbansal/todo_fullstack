@@ -42,12 +42,22 @@ pipeline {
 //             }
 //         }
 
-        stage('Build Docker Images') {
-            steps {
-                sh 'ls -la'  // debug: make sure we SEE docker-compose.yml
-                sh 'docker compose -f docker-compose.yml build'
-            }
-        }
+//         stage('Build Docker Images') {
+//             steps {
+//                 sh 'ls -la'  // debug: make sure we SEE docker-compose.yml
+//                 sh 'docker compose -f docker-compose.yml build'
+//             }
+//         }
+
+stage('Build Docker Images') {
+    steps {
+        sh 'echo ==== WORKSPACE ===='
+        sh 'pwd'
+        sh 'ls -R .'
+        sh 'docker compose build'
+    }
+}
+
 
 
         stage('Deploy') {
