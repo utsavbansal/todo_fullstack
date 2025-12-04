@@ -62,26 +62,62 @@ pipeline {
          * -------------------------
          * This is where model downloads happen — BEFORE full deploy
          * ------------------------- */
-        stage('Wait for Ollama Model Download') {
-            steps {
-                script {
-                    echo "⏳ Waiting for Ollama model setup container to finish..."
+//         stage('Wait for Ollama Model Download') {
+//             steps {
+//                 script {
+//                     echo "⏳ Waiting for Ollama model setup container to finish..."
+//
+//                     timeout(time: 30, unit: 'MINUTES') {
+//                         sh '''
+//                             # Wait until ollama-setup container finishes
+//                             while docker ps | grep -q ollama-setup; do
+//                                 echo "Model still downloading..."
+//                                 docker logs ollama-setup --tail 5 2>/dev/null || true
+//                                 sleep 15
+//                             done
+//
+//                             echo "✅ Model download stage completed!"
+//                         '''
+//                     }
+//                 }
+//             }
+//         }
 
-                    timeout(time: 30, unit: 'MINUTES') {
-                        sh '''
-                            # Wait until ollama-setup container finishes
-                            while docker ps | grep -q ollama-setup; do
-                                echo "Model still downloading..."
-                                docker logs ollama-setup --tail 5 2>/dev/null || true
-                                sleep 15
-                            done
 
-                            echo "✅ Model download stage completed!"
-                        '''
+            stage('Wait for Ollama Model Download') {
+                steps {
+                    script {
+                        echo "⏳ Waiting for Ollama model to finish downloading..."
+
+                        timeout(time: 30, unit: 'MINUTES') {
+                            waitUntil {
+                                def status = sh(
+                                    script: "docker inspect -f '{{.State.Running}} {{.State.ExitCode}}' ollama-setup || true",
+                                    returnStdout: true
+                                ).trim()
+
+                                echo "Status: ${status}"
+
+                                def (isRunning, exitCode) = status.split(' ')
+
+                                if (isRunning == 'false' && exitCode == '0') {
+                                    echo "✅ Model download completed successfully."
+                                    return true
+                                }
+
+                                if (isRunning == 'false' && exitCode != '0') {
+                                    error "❌ Model download failed! Exit code: ${exitCode}"
+                                }
+
+                                // Still running → keep waiting
+                                return false
+                            }
+                        }
                     }
                 }
             }
-        }
+
+
 
         /* -------------------------
          * 6. DEPLOY SERVICES
