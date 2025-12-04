@@ -112,9 +112,34 @@ public class AiService {
                     .block();
 
             JsonObject jsonResponse = gson.fromJson(response, JsonObject.class);
-            return jsonResponse.get("response").getAsString();
+
+            if (jsonResponse.has("response")) {
+                return jsonResponse.get("response").getAsString();
+            } else if (jsonResponse.has("error")) {
+                return "Ollama error: " + jsonResponse.get("error").getAsString();
+            } else {
+                return "Unexpected response from AI service: " + response;
+            }
+
         } catch (Exception e) {
             return "AI service unavailable. Error: " + e.getMessage();
         }
     }
+
+    public String healthCheck() {
+        try {
+            String r = webClient.get()
+                    .uri("/api/tags")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            return "Ollama OK: " + r;
+        } catch (Exception e) {
+            return "Ollama unreachable: " + e.getMessage();
+        }
+    }
+
+
+
 }

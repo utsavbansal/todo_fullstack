@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
+import AiPanel from './AiPanel';
+
 
 // const API_URL = 'http://localhost:8081/api/todos';
 // const API_URL = 'http://backend:8081/api/todos';
@@ -73,6 +75,9 @@ function App() {
       <p>React + Spring Boot + PostgreSQL</p>
 
       {error && <p className="error">{error}</p>}
+
+      {/* ADD THIS NEW AI PANEL */}
+          {todos.length > 0 && <AiPanel todos={todos} />}
 
       <form onSubmit={addTodo} className="todo-form">
         <input

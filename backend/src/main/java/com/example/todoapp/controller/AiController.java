@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = "*")
+//@CrossOrigin(origins = "*")
 public class AiController {
 
     private final AiService aiService;
@@ -61,6 +61,13 @@ public class AiController {
 
     @GetMapping("/health")
     public ResponseEntity<String> health() {
-        return ResponseEntity.ok("AI Service is running!");
+        String status = aiService.healthCheck();
+        if (status.startsWith("Ollama OK")) {
+            return ResponseEntity.ok(status);
+        } else {
+            return ResponseEntity.status(500).body(status);
+        }
     }
+
+
 }
