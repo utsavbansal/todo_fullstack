@@ -36,11 +36,19 @@ pipeline {
             }
         }
 
+//         stage('Build Docker Images') {
+//             steps {
+//                 sh 'docker compose build'
+//             }
+//         }
+
         stage('Build Docker Images') {
             steps {
-                sh 'docker compose build'
+                sh 'ls -la'  // debug: make sure we SEE docker-compose.yml
+                sh 'docker compose -f docker-compose.yml build'
             }
         }
+
 
         stage('Deploy') {
             steps {
