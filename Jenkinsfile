@@ -491,6 +491,14 @@ pipeline {
         }
         failure {
             echo "❌ Deployment Failed. Showing logs..."
+                                sh '''
+                                    echo "==== ollama-setup logs ===="
+                                    docker logs ollama-setup || true
+
+                                    echo "==== todo-ollama logs ===="
+                                    docker logs todo-ollama || true
+                                    '''
+
             sh '''
                 docker compose logs ollama --tail 50 || true
                 docker compose logs backend --tail 50 || true
