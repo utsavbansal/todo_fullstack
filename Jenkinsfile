@@ -395,14 +395,38 @@ stage('Checkout') {
         /* -------------------------
          * 5. START ONLY MODEL SETUP
          * ------------------------- */
-        stage('Start Model Setup') {
-            steps {
-                sh """
-                echo '🚀 Starting ONLY model setup container...'
-                docker compose up -d ollama-setup
-                """
-            }
+//         stage('Start Model Setup') {
+//             steps {
+//                 sh """
+//                 echo '🚀 Starting ONLY model setup container...'
+//                 docker compose up -d ollama-setup
+//                 """
+//             }
+//         }
+
+stage('Start Model Setup') {
+    steps {
+        dir("${WORKSPACE}") {
+            sh '''
+                echo "🚀 Starting ONLY model setup container..."
+                docker compose up -d ollama
+                echo "Waiting for Ollama to become healthy..."
+                for i in {1..20}; do
+                    if [ "$(docker inspect -f '{{.State.Health.Status}}' todo-ollama)" = "healthy" ]; then
+                        echo "Ollama healthy!"
+                        break
+                    fi
+                    echo "Waiting..."
+                    sleep 5
+                done
+
+                echo "📥 Now starting model setup..."
+                docker compose up --no-recreate ollama-setup
+            '''
         }
+    }
+}
+
 
         /* -------------------------
          * 6. WAIT FOR MODEL DOWNLOAD
@@ -526,8 +550,8 @@ stage('Checkout') {
                '''
 
         }
-        always {
-            cleanWs()
-        }
+//         always {
+//             cleanWs()
+//         }
     }
 }
