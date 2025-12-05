@@ -48,22 +48,30 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "
+        echo 'Checking for wget...';
+        if ! command -v wget > /dev/null 2>&1; then
+          echo 'Installing wget...';
+          apt-get update -qq && apt-get install -y -qq wget > /dev/null 2>&1;
+        fi
+      
         echo 'Waiting for Ollama API...';
-        until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
+        until wget -q -O- http://ollama:11434/api/tags > /dev/null 2>&1; do
           echo 'Still waiting...';
           sleep 2;
         done;
-
+      
+        echo '✅ Ollama API is ready!';
+      
         echo 'Checking if model exists...';
-        if curl -sf http://ollama:11434/api/tags | grep -q 'llama3.2'; then
-          echo 'Model already exists, skipping download.';
+        if wget -q -O- http://ollama:11434/api/tags | grep -q 'llama3.2'; then
+          echo '✅ Model already exists, skipping download.';
         else
-          echo 'Pulling model llama3.2:latest...';
+          echo '📥 Pulling model llama3.2:latest...';
           OLLAMA_HOST=http://ollama:11434 ollama pull llama3.2:latest;
-          echo 'Model pulled successfully.';
+          echo '✅ Model pulled successfully.';
         fi
       
-        echo 'Setup complete. Exiting.';
+        echo '🎉 Setup complete. Exiting.';
       "
     depends_on:
       ollama:
