@@ -503,6 +503,11 @@ pipeline {
                 docker compose logs ollama --tail 50 || true
                 docker compose logs backend --tail 50 || true
             '''
+            sh '''
+            ls -al
+            cat docker-compose.yml
+               '''
+
         }
         always {
             cleanWs()
