@@ -45,8 +45,9 @@ services:
   ollama-setup:
     image: ollama/ollama:latest
     container_name: ollama-setup
+    entrypoint: ["/bin/sh", "-c"]
     command: >
-      sh -c "
+      "
         echo 'Waiting for Ollama API...';
         until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
           echo 'Still waiting...';
@@ -58,7 +59,7 @@ services:
           echo 'Model already exists, skipping download.';
         else
           echo 'Pulling model llama3.2:latest...';
-          ollama pull llama3.2:latest;
+          OLLAMA_HOST=http://ollama:11434 ollama pull llama3.2:latest;
           echo 'Model pulled successfully.';
         fi
       
@@ -72,6 +73,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
 
   backend:
     build: ./backend
