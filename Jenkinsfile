@@ -217,109 +217,287 @@
 // }
 
 
+// pipeline {
+//     agent any
+//
+//     environment {
+//         COMPOSE = "docker compose -f docker-compose.yml"
+//     }
+//
+//     stages {
+//
+//         stage('Checkout') {
+//             steps {
+//                 checkout scm
+//             }
+//         }
+//
+//         stage('Backend Build') {
+//             steps {
+//                 sh """
+//                 echo '📦 Building backend...'
+//                 cd backend
+//                 mvn clean package -DskipTests
+//                 """
+//             }
+//         }
+//
+//         stage('Frontend Build') {
+//             steps {
+//                 sh """
+//                 echo '🌐 Building frontend...'
+//                 cd frontend
+//                 npm ci
+//                 npm run build
+//                 """
+//             }
+//         }
+//
+//         stage('Build Docker Images') {
+//             steps {
+//                 sh """
+//                 echo '🐳 Building Docker images...'
+//                 $COMPOSE build
+//                 """
+//             }
+//         }
+//
+//         stage('Start Stack') {
+//             steps {
+//                 sh """
+//                 echo '🚀 Starting stack...'
+//                 $COMPOSE up -d
+//                 """
+//             }
+//         }
+//
+//         stage('Wait for Model Download') {
+//             steps {
+//                 echo "⏳ Waiting for Ollama model download to finish..."
+//
+//                 timeout(time: 30, unit: 'MINUTES') {
+//                     script {
+//                         retry(100) {
+//                             sleep 15
+//
+//                             def running = sh(script: "docker inspect -f '{{.State.Running}}' ollama-setup || true", returnStdout: true).trim()
+//                             def exitCode = sh(script: "docker inspect -f '{{.State.ExitCode}}' ollama-setup || true", returnStdout: true).trim()
+//
+//                             echo "Status: running=${running}, exit=${exitCode}"
+//
+//                             if (running == "false" && exitCode == "0") {
+//                                 echo "✅ Model downloaded!"
+//                                 return
+//                             }
+//
+//                             if (running == "false" && exitCode != "0") {
+//                                 error("❌ Model download failed — check ollama-setup logs.")
+//                             }
+//
+//                             // otherwise retry
+//                             error("Not finished yet")
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         stage('Restart Without Setup Container') {
+//             steps {
+//                 sh """
+//                 echo '🧹 Cleaning setup container...'
+//                 docker rm -f ollama-setup || true
+//
+//                 echo '🔄 Restarting stack cleanly...'
+//                 $COMPOSE down
+//                 $COMPOSE up -d
+//                 """
+//             }
+//         }
+//     }
+//
+//     post {
+//         always {
+//             sh 'docker ps'
+//             echo "Pipeline finished."
+//         }
+//     }
+// }
+
+
+
 pipeline {
     agent any
 
-    environment {
-        COMPOSE = "docker compose -f docker-compose.yml"
-    }
-
     stages {
 
+        /* -------------------------
+         * 1. CHECKOUT
+         * ------------------------- */
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/utsavbansal/todo_fullstack.git',
+                    credentialsId: 'utsav-gitpat'
             }
         }
 
-        stage('Backend Build') {
+        /* -------------------------
+         * 2. BUILD BACKEND
+         * ------------------------- */
+        stage('Build Backend') {
             steps {
-                sh """
-                echo '📦 Building backend...'
-                cd backend
-                mvn clean package -DskipTests
-                """
+                dir('backend') {
+                    sh 'mvn clean package -DskipTests'
+                }
             }
         }
 
-        stage('Frontend Build') {
+        /* -------------------------
+         * 3. BUILD FRONTEND
+         * ------------------------- */
+        stage('Build Frontend') {
             steps {
-                sh """
-                echo '🌐 Building frontend...'
-                cd frontend
-                npm ci
-                npm run build
-                """
+                dir('frontend') {
+                    sh 'mkdir -p .npm-cache'
+                    sh 'npm ci --cache .npm-cache'
+                    sh 'npm run build'
+                }
             }
         }
 
+        /* -------------------------
+         * 4. BUILD DOCKER IMAGES
+         * ------------------------- */
         stage('Build Docker Images') {
             steps {
-                sh """
-                echo '🐳 Building Docker images...'
-                $COMPOSE build
-                """
+                sh 'docker compose build'
             }
         }
 
-        stage('Start Stack') {
+        /* -------------------------
+         * 5. START ONLY MODEL SETUP
+         * ------------------------- */
+        stage('Start Model Setup') {
             steps {
                 sh """
-                echo '🚀 Starting stack...'
-                $COMPOSE up -d
+                echo '🚀 Starting ONLY model setup container...'
+                docker compose up -d ollama-setup
                 """
             }
         }
 
+        /* -------------------------
+         * 6. WAIT FOR MODEL DOWNLOAD
+         * ------------------------- */
         stage('Wait for Model Download') {
             steps {
-                echo "⏳ Waiting for Ollama model download to finish..."
+                script {
+                    timeout(time: 30, unit: 'MINUTES') {
+                        waitUntil {
+                            def running = sh(
+                                script: "docker inspect -f '{{.State.Running}}' ollama-setup || true",
+                                returnStdout: true
+                            ).trim()
 
-                timeout(time: 30, unit: 'MINUTES') {
-                    script {
-                        retry(100) {
-                            sleep 15
-
-                            def running = sh(script: "docker inspect -f '{{.State.Running}}' ollama-setup || true", returnStdout: true).trim()
-                            def exitCode = sh(script: "docker inspect -f '{{.State.ExitCode}}' ollama-setup || true", returnStdout: true).trim()
+                            def exitCode = sh(
+                                script: "docker inspect -f '{{.State.ExitCode}}' ollama-setup || true",
+                                returnStdout: true
+                            ).trim()
 
                             echo "Status: running=${running}, exit=${exitCode}"
 
                             if (running == "false" && exitCode == "0") {
-                                echo "✅ Model downloaded!"
-                                return
+                                echo "✅ Model download completed successfully."
+                                return true
                             }
 
                             if (running == "false" && exitCode != "0") {
-                                error("❌ Model download failed — check ollama-setup logs.")
+                                error "❌ Model download failed! Exit code: ${exitCode}"
                             }
 
-                            // otherwise retry
-                            error("Not finished yet")
+                            return false
                         }
                     }
                 }
             }
         }
 
-        stage('Restart Without Setup Container') {
+        /* -------------------------
+         * 7. REMOVE SETUP CONTAINER
+         * ------------------------- */
+        stage('Cleanup Model Setup') {
+            steps {
+                sh "docker rm -f ollama-setup || true"
+            }
+        }
+
+        /* -------------------------
+         * 8. START REAL SERVICES
+         * ------------------------- */
+        stage('Start Main Stack') {
             steps {
                 sh """
-                echo '🧹 Cleaning setup container...'
-                docker rm -f ollama-setup || true
+                echo "🧹 Cleaning old containers..."
+                docker rm -f \$(docker ps -aq --filter "name=todo") || true
+                docker rm -f \$(docker ps -aq --filter "name=ollama") || true
 
-                echo '🔄 Restarting stack cleanly...'
-                $COMPOSE down
-                $COMPOSE up -d
+                docker network prune -f || true
+
+                echo "🚀 Starting main services..."
+                docker compose up -d postgres ollama backend frontend
+                """
+            }
+        }
+
+        /* -------------------------
+         * 9. HEALTH CHECK
+         * ------------------------- */
+        stage('Health Check') {
+            steps {
+                script {
+                    echo "⏳ Waiting for stack to stabilize..."
+                    sleep 20
+
+                    retry(10) { sh "curl -fs http://localhost:8081/api/todos/health" }
+                    retry(10) { sh "curl -fs http://localhost" }
+                    retry(10) { sh "curl -fs http://localhost:11434/api/tags" }
+
+                    echo "🔍 Checking backend AI endpoint..."
+                    sh "curl -fs http://localhost:8081/api/ai/health"
+
+                    echo "💚 All services are healthy!"
+                }
+            }
+        }
+
+        /* -------------------------
+         * 10. DISPLAY URLS
+         * ------------------------- */
+        stage('Display URLs') {
+            steps {
+                echo """
+                Frontend:  http://localhost
+                Backend:   http://localhost:8081
+                AI API:    http://localhost:11434
                 """
             }
         }
     }
 
     post {
+        success {
+            echo "🎉 Deployment Successful!"
+        }
+        failure {
+            echo "❌ Deployment Failed. Showing logs..."
+            sh '''
+                docker compose logs ollama --tail 50 || true
+                docker compose logs backend --tail 50 || true
+            '''
+        }
         always {
-            sh 'docker ps'
-            echo "Pipeline finished."
+            cleanWs()
         }
     }
 }
