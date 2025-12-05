@@ -334,13 +334,30 @@ pipeline {
         /* -------------------------
          * 1. CHECKOUT
          * ------------------------- */
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/utsavbansal/todo_fullstack.git',
-                    credentialsId: 'utsav-gitpat'
-            }
-        }
+//         stage('Checkout') {
+//             steps {
+//                 git branch: 'main',
+//                     url: 'https://github.com/utsavbansal/todo_fullstack.git',
+//                     credentialsId: 'utsav-gitpat'
+//             }
+//         }
+
+stage('Checkout') {
+    steps {
+        checkout([
+            $class: 'GitSCM',
+            branches: [[name: '*/main']],
+            userRemoteConfigs: [[
+                url: 'https://github.com/utsavbansal/todo_fullstack.git',
+                credentialsId: 'utsav-gitpat'
+            ]]
+        ])
+
+        sh 'echo "=== AFTER CHECKOUT ==="'
+        sh 'ls -al'
+    }
+}
+
 
         /* -------------------------
          * 2. BUILD BACKEND
