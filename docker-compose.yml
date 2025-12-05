@@ -23,6 +23,22 @@ services:
   # -----------------------------------------------------------
   # MAIN OLLAMA DAEMON
   # -----------------------------------------------------------
+#  ollama:
+#    image: ollama/ollama:latest
+#    container_name: todo-ollama
+#    ports:
+#      - "11434:11434"
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - todo-network
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 30s
+
   ollama:
     image: ollama/ollama:latest
     container_name: todo-ollama
@@ -33,22 +49,48 @@ services:
     networks:
       - todo-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:11434/api/version" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
+
+
   # -----------------------------------------------------------
   # ONE-SHOT MODEL DOWNLOAD CONTAINER
   # -----------------------------------------------------------
+#  ollama-setup:
+#    image: ollama/ollama:latest
+#    container_name: ollama-setup
+#    command: >
+#      sh -c "
+#        echo 'Waiting for Ollama API...';
+#        until curl -sf http://ollama:11434/api/version; do
+#          echo 'Still waiting...';
+#          sleep 2;
+#        done;
+#
+#        echo 'Pulling model llama3.2:latest...';
+#        ollama pull llama3.2:latest;
+#
+#        echo 'Model pulled successfully. Exiting.';
+#      "
+#    depends_on:
+#      ollama:
+#        condition: service_healthy
+#    networks:
+#      - todo-network
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    restart: "no"
   ollama-setup:
     image: ollama/ollama:latest
     container_name: ollama-setup
     command: >
       sh -c "
         echo 'Waiting for Ollama API...';
-        until curl -sf http://ollama:11434/api/version; do
+        until wget -qO- http://ollama:11434/api/version > /dev/null; do
           echo 'Still waiting...';
           sleep 2;
         done;
@@ -66,6 +108,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: "no"
+
 
   backend:
     build: ./backend
