@@ -21,26 +21,10 @@ services:
       retries: 5
 
   # -----------------------------------------------------------
-  # MAIN OLLAMA DAEMON
+  # MAIN OLLAMA DAEMON (using custom Dockerfile)
   # -----------------------------------------------------------
-#  ollama:
-#    image: ollama/ollama:latest
-#    container_name: todo-ollama
-#    ports:
-#      - "11434:11434"
-#    volumes:
-#      - ollama_data:/root/.ollama
-#    networks:
-#      - todo-network
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 10
-#      start_period: 30s
-
   ollama:
-    image: ollama/ollama:latest
+    build: ./ollama
     container_name: todo-ollama
     ports:
       - "11434:11434"
@@ -49,56 +33,36 @@ services:
     networks:
       - todo-network
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:11434/api/version" ]
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
-
-
   # -----------------------------------------------------------
   # ONE-SHOT MODEL DOWNLOAD CONTAINER
   # -----------------------------------------------------------
-#  ollama-setup:
-#    image: ollama/ollama:latest
-#    container_name: ollama-setup
-#    command: >
-#      sh -c "
-#        echo 'Waiting for Ollama API...';
-#        until curl -sf http://ollama:11434/api/version; do
-#          echo 'Still waiting...';
-#          sleep 2;
-#        done;
-#
-#        echo 'Pulling model llama3.2:latest...';
-#        ollama pull llama3.2:latest;
-#
-#        echo 'Model pulled successfully. Exiting.';
-#      "
-#    depends_on:
-#      ollama:
-#        condition: service_healthy
-#    networks:
-#      - todo-network
-#    volumes:
-#      - ollama_data:/root/.ollama
-#    restart: "no"
   ollama-setup:
     image: ollama/ollama:latest
     container_name: ollama-setup
     command: >
       sh -c "
         echo 'Waiting for Ollama API...';
-        until wget -qO- http://ollama:11434/api/version > /dev/null; do
+        until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
           echo 'Still waiting...';
           sleep 2;
         done;
 
-        echo 'Pulling model llama3.2:latest...';
-        ollama pull llama3.2:latest;
-
-        echo 'Model pulled successfully. Exiting.';
+        echo 'Checking if model exists...';
+        if curl -sf http://ollama:11434/api/tags | grep -q 'llama3.2'; then
+          echo 'Model already exists, skipping download.';
+        else
+          echo 'Pulling model llama3.2:latest...';
+          ollama pull llama3.2:latest;
+          echo 'Model pulled successfully.';
+        fi
+      
+        echo 'Setup complete. Exiting.';
       "
     depends_on:
       ollama:
@@ -108,7 +72,6 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: "no"
-
 
   backend:
     build: ./backend
@@ -128,6 +91,12 @@ services:
         condition: service_completed_successfully
     networks:
       - todo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/todos/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   frontend:
     build: ./frontend

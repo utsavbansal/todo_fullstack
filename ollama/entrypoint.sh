@@ -6,18 +6,20 @@ SERVER_PID=$!
 
 # Wait for server to be ready
 echo "Waiting for Ollama server..."
-until curl -s http://localhost:11434/api/tags >/dev/null 2>&1; do
+until curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; do
+  echo "Still waiting for Ollama to start..."
   sleep 2
 done
 echo "Ollama is ready."
 
-# Only pull the model if it DOES NOT EXIST in the volume
-if ! ollama list | grep -q "llama3.2"; then
+# Check if model exists
+if ollama list | grep -q "llama3.2"; then
+  echo "Model already installed — skipping download."
+else
   echo "Model not found. Pulling llama3.2..."
   ollama pull llama3.2:latest
   echo "Model downloaded."
-else
-  echo "Model already installed — skipping download."
 fi
 
+# Keep the server running
 wait $SERVER_PID

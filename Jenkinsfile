@@ -403,30 +403,50 @@ stage('Checkout') {
 //                 """
 //             }
 //         }
+//
+// stage('Start Model Setup') {
+//     steps {
+//         dir("${WORKSPACE}") {
+//             sh '''
+//                 echo "🚀 Starting ONLY model setup container..."
+//                 docker compose up -d ollama
+//                 echo "Waiting for Ollama to become healthy..."
+//                 for i in {1..20}; do
+//                     if [ "$(docker inspect -f '{{.State.Health.Status}}' todo-ollama)" = "healthy" ]; then
+//                         echo "Ollama healthy!"
+//                         break
+//                     fi
+//                     echo "Waiting..."
+//                     sleep 5
+//                 done
+//
+//                 echo "📥 Now starting model setup..."
+//                 docker compose up --no-recreate ollama-setup
+//             '''
+//         }
+//     }
+// }
 
 stage('Start Model Setup') {
     steps {
         dir("${WORKSPACE}") {
             sh '''
-                echo "🚀 Starting ONLY model setup container..."
+                echo "🚀 Starting Ollama service..."
                 docker compose up -d ollama
-                echo "Waiting for Ollama to become healthy..."
-                for i in {1..20}; do
-                    if [ "$(docker inspect -f '{{.State.Health.Status}}' todo-ollama)" = "healthy" ]; then
-                        echo "Ollama healthy!"
-                        break
-                    fi
-                    echo "Waiting..."
-                    sleep 5
-                done
 
-                echo "📥 Now starting model setup..."
-                docker compose up --no-recreate ollama-setup
+                echo "⏳ Waiting for Ollama to become healthy..."
+                timeout 120 bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} todo-ollama)" = "healthy" ]; do echo "Waiting..."; sleep 3; done'
+
+                echo "✅ Ollama is healthy!"
+
+                echo "📥 Starting model download..."
+                docker compose up ollama-setup
+
+                echo "✅ Model setup complete!"
             '''
         }
     }
 }
-
 
         /* -------------------------
          * 6. WAIT FOR MODEL DOWNLOAD
