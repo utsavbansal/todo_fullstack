@@ -1,3 +1,110 @@
+#version: '3.8'
+#
+#services:
+#  postgres:
+#    image: postgres:16-alpine
+#    container_name: todo-postgres
+#    environment:
+#      POSTGRES_DB: tododb
+#      POSTGRES_USER: todouser
+#      POSTGRES_PASSWORD: todopassword
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - todo-network
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U todouser -d tododb"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  # 🚀 MODEL DOWNLOAD CONTAINER
+#  ollama-setup:
+#    image: ollama/ollama:latest
+#    container_name: ollama-setup
+#    entrypoint: >
+#      sh -c "
+#        echo 'Starting Ollama service temporarily...';
+#        ollama serve &
+#
+#        # Wait until Ollama is actually up
+#        until curl -sf http://localhost:11434/api/tags; do
+#          echo 'Waiting for Ollama to be ready...';
+#          sleep 2;
+#        done;
+#
+#        echo 'Ollama is ready. Pulling model...';
+#        ollama pull llama3.2:latest;
+#
+#        echo 'Model downloaded. Exiting.'
+#      "
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - todo-network
+#
+#
+#  # 🚀 MAIN OLLAMA RUNTIME
+#  ollama:
+#    image: ollama/ollama:latest
+#    container_name: todo-ollama
+#    ports:
+#      - "11434:11434"
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - todo-network
+#    depends_on:
+#      ollama-setup:
+#        condition: service_completed_successfully
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+#      interval: 20s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 30s
+#
+#  backend:
+#    build: ./backend
+#    container_name: todo-backend
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tododb
+#      SPRING_DATASOURCE_USERNAME: todouser
+#      SPRING_DATASOURCE_PASSWORD: todopassword
+#      OLLAMA_BASE_URL: http://ollama:11434
+#      OLLAMA_MODEL: llama3.2:latest
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      ollama:
+#        condition: service_healthy
+#    networks:
+#      - todo-network
+#
+#  frontend:
+#    build: ./frontend
+#    container_name: todo-frontend
+#    ports:
+#      - "80:80"
+#    depends_on:
+#      backend:
+#        condition: service_healthy
+#    networks:
+#      - todo-network
+#
+#networks:
+#  todo-network:
+#    driver: bridge
+#
+#volumes:
+#  postgres_data:
+#  ollama_data:
+
+
 version: '3.8'
 
 services:
@@ -20,33 +127,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # 🚀 MODEL DOWNLOAD CONTAINER
-  ollama-setup:
-    image: ollama/ollama:latest
-    container_name: ollama-setup
-    entrypoint: >
-      sh -c "
-        echo 'Starting Ollama service temporarily...';
-        ollama serve &
-
-        # Wait until Ollama is actually up
-        until curl -sf http://localhost:11434/api/tags; do
-          echo 'Waiting for Ollama to be ready...';
-          sleep 2;
-        done;
-
-        echo 'Ollama is ready. Pulling model...';
-        ollama pull llama3.2:latest;
-
-        echo 'Model downloaded. Exiting.'
-      "
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - todo-network
-
-
-  # 🚀 MAIN OLLAMA RUNTIME
+  # -----------------------------------------------------------
+  # MAIN OLLAMA DAEMON
+  # -----------------------------------------------------------
   ollama:
     image: ollama/ollama:latest
     container_name: todo-ollama
@@ -56,15 +139,40 @@ services:
       - ollama_data:/root/.ollama
     networks:
       - todo-network
-    depends_on:
-      ollama-setup:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 20s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # -----------------------------------------------------------
+  # ONE-SHOT MODEL DOWNLOAD CONTAINER
+  # -----------------------------------------------------------
+  ollama-setup:
+    image: ollama/ollama:latest
+    container_name: ollama-setup
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama...';
+        until curl -sf http://ollama:11434/api/tags; do
+          echo 'Still waiting...';
+          sleep 2;
+        done;
+
+        echo 'Pulling model llama3.2:latest...';
+        ollama pull llama3.2:latest;
+
+        echo 'Model pulled successfully.';
+      "
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - todo-network
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: "no"
 
   backend:
     build: ./backend
